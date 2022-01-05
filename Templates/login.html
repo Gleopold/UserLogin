@@ -5,7 +5,15 @@
 </head>
 
 <body>
+
     <h1>Login auth</h1>
+    <form method="POST" action="">
+        
+        {{ form.username }}
+        {{ form.password() }}
+        {{ form.submit() }}
+    </form>
+
 </body>
 
 </html>
