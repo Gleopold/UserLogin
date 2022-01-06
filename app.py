@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for
+from flask import Flask, render_template, url_for, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
@@ -22,25 +22,25 @@ def load_user(user_id):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
-    passwd = db.Column(db.String(80), nullable=False)
+    password = db.Column(db.String(80), nullable=False)
 
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
-        min = 4, max=20)], render_kw={"placeholder":"Username"})
+        min = 1, max=20)], render_kw={"placeholder":"Username"})
 
     password = PasswordField(validators=[InputRequired(), Length(
-        min = 4, max=20)], render_kw={"placeholder":"Password"})
+        min = 1, max=20)], render_kw={"placeholder":"Password"})
 
     submit = SubmitField("Login")
 
-class RegisterForm(FlaskForm):
+class AddUserForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
         min = 1, max=20)], render_kw={"placeholder":"Username"})
 
     password = PasswordField(validators=[InputRequired(), Length(
         min = 1, max=80)], render_kw={"placeholder":"Password"})
     
-    submit = SubmitField("Register")
+    submit = SubmitField("AddUser")
     
     def validate_username(self,username):
         existing_user_username = User.query.filter_by(
@@ -56,35 +56,43 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
+    print('Form initialized')
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user:
+            login_user(user)
+            return redirect(url_for('dashboard'))
             if bcrypt.check_password_hash(user.password, form.password.data):
                 login_user(user)
-                return redirect(url_for('dashboard')) #  tu ce mi ic duo
-
+                return redirect(url_for('dashboard'))
+    else:
+        print('Not validated')
     return render_template('login.html', form=form)
 
-@app.route('/dashboard', methods=['GET', 'POST'])
-@login_required
-def dashboard():
-    return render_template('dashboard')
 
 @app.route('/adduser', methods=['GET', 'POST'])
 #@login_required
 def adduser():
-    form = RegisterForm()
+    form = AddUserForm()
 
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
         new_user = User(username=form.username.data, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
-        return redirect(url_for('login'))
+        return (url_for('login'))
+        print('user in added succ')
     return render_template('adduser.html', form=form)
+
 
 def login():
     return render_template('login.html')
+
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+     #  tu ce mi ic duo
+    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

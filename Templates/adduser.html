@@ -8,7 +8,7 @@
 
     <h1>Add user</h1>
     <form method="POST" action="">
-        
+        {{ form.hidden_tag() }}
         {{ form.username }}
         {{ form.password() }}
         {{ form.submit() }}
