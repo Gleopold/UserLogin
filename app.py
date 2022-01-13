@@ -1,10 +1,13 @@
-from flask import Flask, render_template, url_for, redirect
+from flask import Flask, render_template, url_for, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import Bcrypt
+import pyotp
+from flask_restful import reqparse
+
 
 app = Flask(__name__)
 db = SQLAlchemy(app)
@@ -16,6 +19,15 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 
 bcrypt = Bcrypt(app)
+
+secret=pyotp.random_base32()
+
+def parse_arg_from_requests(arg, **kwargs):
+    parse = reqparse.RequestParser()
+    parse.add_argument(arg, **kwargs)
+    args = parse.parse_args()
+    return args[arg]
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -32,6 +44,10 @@ class LoginForm(FlaskForm):
 
     password = PasswordField(validators=[InputRequired(), Length(
         min = 1, max=20)], render_kw={"placeholder":"Password"})
+
+    otp = StringField(validators=[InputRequired(), Length(
+        min = 1, max=6)], render_kw={"placeholder":"otp"})
+    
 
     submit = SubmitField("Login")
 
@@ -57,19 +73,25 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+
     form = LoginForm()
+    
+    #return render_template("login.html", secret=secret, form = form)
     print('Form initialized')
+    otp = request.values.get("otp")
+    print("otp:", otp)
+
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
+
         if user:
-            login_user(user)
-            return redirect(url_for('dashboard'))
-            if bcrypt.check_password_hash(user.password, form.password.data):
+            if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(secret).verify(otp):
+                
                 login_user(user)
                 return redirect(url_for('dashboard'))
     else:
         print('Not validated')
-    return render_template('login.html', form=form)
+    return render_template('login.html', form=form, secret=secret)
 
 
 @app.route('/adduser', methods=['GET', 'POST'])
@@ -86,9 +108,6 @@ def adduser():
         print('user in added succ')
     return render_template('adduser.html', form=form)
 
-
-def login():
-    return render_template('login.html')
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
