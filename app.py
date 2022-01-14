@@ -6,7 +6,10 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import Bcrypt
 import pyotp
-from flask_restful import reqparse
+import subprocess, sys
+import qrcode
+from PIL import Image  
+import PIL  
 
 
 app = Flask(__name__)
@@ -80,18 +83,33 @@ def login():
     print('Form initialized')
     otp = request.values.get("otp")
     print("otp:", otp)
+    email = "lggplay92@gmail.com"
+    issuer = "leo"
+    otp_secret_url = pyotp.totp.TOTP(secret).provisioning_uri(email, issuer_name=issuer)
+    qr = qrcode.QRCode(
+    version=1,
+    error_correction=qrcode.constants.ERROR_CORRECT_L,
+    box_size=10,
+    border=4,
+    )
+    qr.add_data(otp_secret_url)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="black", back_color="white")
+    image.save("qrcode.png")
+
 
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user:
-            if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(secret).verify(otp):
+            if bcrypt.check_password_hash(user.password, form.password.data):# and pyotp.TOTP(secret).verify(otp):
                 
                 login_user(user)
                 return redirect(url_for('dashboard'))
     else:
         print('Not validated')
     return render_template('login.html', form=form, secret=secret)
+
 
 
 @app.route('/adduser', methods=['GET', 'POST'])
@@ -112,7 +130,11 @@ def adduser():
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-     #  tu ce mi ic duo
+    p = subprocess.Popen(["powershell.exe", 
+    "C:\\Users\\Leo\\Documents\\GitHub\\UserLogin\\mkdir.ps1"], 
+    stdout=sys.stdout)
+    p.communicate()
+    
     return render_template('dashboard.html')
 
 if __name__ == '__main__':
