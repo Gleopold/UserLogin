@@ -15,23 +15,7 @@
         {{ form.otp }}
         {{ form.submit() }}
     </form>
-    <label for="secret">Secret Token</label>
-    <input type="text" class="form-control" id="secret" value="{{ secret }}" readonly>
-    <script>
-        function copySecret() {
-          /* Get the text field */
-          var copyText = document.getElementById("secret");
-      
-          /* Select the text field */
-          copyText.select();
-          copyText.setSelectionRange(0, 99999); /*For mobile devices*/
-      
-          /* Copy the text inside the text field */
-          document.execCommand("copy");
-      
-          alert("Successfully copied TOTP secret token!");
-        }
-      </script>
+
 </body>
 
 </html>

@@ -23,14 +23,12 @@ login_manager.login_view = "login"
 
 bcrypt = Bcrypt(app)
 
-secret=pyotp.random_base32()
 
 def parse_arg_from_requests(arg, **kwargs):
     parse = reqparse.RequestParser()
     parse.add_argument(arg, **kwargs)
     args = parse.parse_args()
     return args[arg]
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -40,6 +38,9 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(20), nullable=False, unique=True)
+    sec_key = db.Column(db.String(20), nullable=False, unique=True)
+
 
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
@@ -51,8 +52,8 @@ class LoginForm(FlaskForm):
     otp = StringField(validators=[InputRequired(), Length(
         min = 1, max=6)], render_kw={"placeholder":"otp"})
     
-
     submit = SubmitField("Login")
+
 
 class AddUserForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
@@ -60,7 +61,10 @@ class AddUserForm(FlaskForm):
 
     password = PasswordField(validators=[InputRequired(), Length(
         min = 1, max=80)], render_kw={"placeholder":"Password"})
-    
+
+    email = StringField(validators=[InputRequired(), Length(
+        min = 1, max=20)], render_kw={"placeholder":"email"})
+
     submit = SubmitField("AddUser")
     
     def validate_username(self,username):
@@ -69,6 +73,7 @@ class AddUserForm(FlaskForm):
         
         if existing_user_username:
             raise ValidationError("User already exists")
+
 
 @app.route('/')
 def home():
@@ -83,47 +88,49 @@ def login():
     print('Form initialized')
     otp = request.values.get("otp")
     print("otp:", otp)
-    email = "lggplay92@gmail.com"
-    issuer = "leo"
-    otp_secret_url = pyotp.totp.TOTP(secret).provisioning_uri(email, issuer_name=issuer)
-    qr = qrcode.QRCode(
-    version=1,
-    error_correction=qrcode.constants.ERROR_CORRECT_L,
-    box_size=10,
-    border=4,
-    )
-    qr.add_data(otp_secret_url)
-    qr.make(fit=True)
-    image = qr.make_image(fill_color="black", back_color="white")
-    image.save("qrcode.png")
-
 
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):# and pyotp.TOTP(secret).verify(otp):
+            if bcrypt.check_password_hash(user.password, form.password.data):# and pyotp.TOTP(user.sec_key).verify(otp):
                 
                 login_user(user)
                 return redirect(url_for('dashboard'))
     else:
         print('Not validated')
-    return render_template('login.html', form=form, secret=secret)
-
+    return render_template('login.html', form=form)
 
 
 @app.route('/adduser', methods=['GET', 'POST'])
 #@login_required
 def adduser():
     form = AddUserForm()
-
+    secret=pyotp.random_base32()
+    
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
-        new_user = User(username=form.username.data, password=hashed_password)
+        sec_key_generated = pyotp.totp.TOTP(secret).provisioning_uri(form.email.data, issuer_name=form.username.data) # generate sec key for user
+        print("Sec key", sec_key_generated)
+        new_user = User(username=form.username.data, password=hashed_password, email=form.email.data, sec_key = sec_key_generated)
+        print("new_user", sec_key_generated)
         db.session.add(new_user)
         db.session.commit()
+
+        #generate qr code
+        qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+        )
+        qr.add_data(secret)
+        qr.make(fit=True)
+        image = qr.make_image(fill_color="black", back_color="white")
+        image.save("qrcode.png")
+
         return (url_for('login'))
-        print('user in added succ')
+        
     return render_template('adduser.html', form=form)
 
 
