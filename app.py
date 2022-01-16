@@ -49,8 +49,7 @@ class LoginForm(FlaskForm):
     password = PasswordField(validators=[InputRequired(), Length(
         min = 1, max=20)], render_kw={"placeholder":"Password"})
 
-    otp = StringField(validators=[InputRequired(), Length(
-        min = 1, max=6)], render_kw={"placeholder":"otp"})
+    otp = StringField(validators=[InputRequired()], render_kw={"placeholder":"otp"})
     
     submit = SubmitField("Login")
 
@@ -86,6 +85,7 @@ def login():
     
     #return render_template("login.html", secret=secret, form = form)
     print('Form initialized')
+
     otp = request.values.get("otp")
     print("otp:", otp)
 
@@ -93,8 +93,7 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):# and pyotp.TOTP(user.sec_key).verify(otp):
-                
+            if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(user.sec_key).verify(otp):
                 login_user(user)
                 return redirect(url_for('dashboard'))
     else:
@@ -110,21 +109,19 @@ def adduser():
     
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
-        sec_key_generated = pyotp.totp.TOTP(secret).provisioning_uri(form.email.data, issuer_name=form.username.data) # generate sec key for user
-        print("Sec key", sec_key_generated)
-        new_user = User(username=form.username.data, password=hashed_password, email=form.email.data, sec_key = sec_key_generated)
-        print("new_user", sec_key_generated)
+        new_user = User(username=form.username.data, password=hashed_password, email=form.email.data, sec_key = secret)
         db.session.add(new_user)
         db.session.commit()
-
+        
         #generate qr code
+        sec_key_generated = pyotp.totp.TOTP(secret).provisioning_uri(form.email.data, issuer_name=form.username.data)
         qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=4,
         )
-        qr.add_data(secret)
+        qr.add_data(sec_key_generated)
         qr.make(fit=True)
         image = qr.make_image(fill_color="black", back_color="white")
         image.save("qrcode.png")
