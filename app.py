@@ -6,22 +6,26 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
 from flask_bcrypt import Bcrypt
 import pyotp
-import subprocess, sys
+import subprocess
+import sys
 import qrcode
 from PIL import Image
 import PIL
 import time
 
-
 app = Flask(__name__)
+
+#DBConf
 db = SQLAlchemy(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'SEC_KEY'
 
+#Init login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+#Init bcrypt
 bcrypt = Bcrypt(app)
 
 
@@ -31,9 +35,11 @@ def parse_arg_from_requests(arg, **kwargs):
     args = parse.parse_args()
     return args[arg]
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,32 +51,33 @@ class User(db.Model, UserMixin):
 
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
-        min = 1, max=20)], render_kw={"placeholder":"Username"})
+        min=1, max=20)], render_kw={"placeholder": "Username"})
 
     password = PasswordField(validators=[InputRequired(), Length(
-        min = 1, max=20)], render_kw={"placeholder":"Password"})
+        min=1, max=20)], render_kw={"placeholder": "Password"})
 
-    otp = StringField(validators=[InputRequired()], render_kw={"placeholder":"otp"})
-    
+    otp = StringField(validators=[InputRequired()],
+                      render_kw={"placeholder": "otp"})
+
     submit = SubmitField("Login")
 
 
 class AddUserForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
-        min = 1, max=20)], render_kw={"placeholder":"Username"})
+        min=1, max=20)], render_kw={"placeholder": "Username"})
 
     password = PasswordField(validators=[InputRequired(), Length(
-        min = 1, max=80)], render_kw={"placeholder":"Password"})
+        min=1, max=80)], render_kw={"placeholder": "Password"})
 
     email = StringField(validators=[InputRequired(), Length(
-        min = 1, max=40)], render_kw={"placeholder":"email"})
+        min=1, max=40)], render_kw={"placeholder": "email"})
 
     submit = SubmitField("AddUser")
-    
-    def validate_username(self,username):
+
+    def validate_username(self, username):
         existing_user_username = User.query.filter_by(
             username=username.data).first()
-        
+
         if existing_user_username:
             raise ValidationError("User already exists")
 
@@ -78,6 +85,7 @@ class AddUserForm(FlaskForm):
 @app.route('/')
 def home():
     return render_template('home.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -98,7 +106,7 @@ def login():
                     pathanduser = path + " " + form.username.data
                     print(pathanduser)
                     p = subprocess.Popen(["powershell.exe", pathanduser],
-                    stdout=sys.stdout)
+                                         stdout=sys.stdout)
                     p.communicate()
                     return render_template('dashboard.html', username=form.username.data)
         except:
@@ -109,24 +117,26 @@ def login():
 
 
 @app.route('/adduser', methods=['GET', 'POST'])
-#@login_required
+# @login_required
 def adduser():
     form = AddUserForm()
-    secret=pyotp.random_base32()
-    
+    secret = pyotp.random_base32()
+
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data)
-        new_user = User(username=form.username.data, password=hashed_password, email=form.email.data, sec_key = secret)
+        new_user = User(username=form.username.data,
+                        password=hashed_password, email=form.email.data, sec_key=secret)
         db.session.add(new_user)
         db.session.commit()
-        
-        #generate qr code and save localy
-        sec_key_generated = pyotp.totp.TOTP(secret).provisioning_uri(form.email.data, issuer_name=form.username.data)
+
+        # generate qr code and save localy
+        sec_key_generated = pyotp.totp.TOTP(secret).provisioning_uri(
+            form.email.data, issuer_name=form.username.data)
         qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
         )
         qr.add_data(sec_key_generated)
         qr.make(fit=True)
@@ -141,9 +151,10 @@ def adduser():
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
-#@login_required
-def dashboard():    
+# @login_required
+def dashboard():
     return render_template('dashboard.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
