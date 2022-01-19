@@ -120,7 +120,7 @@ def adduser():
         db.session.add(new_user)
         db.session.commit()
         
-        #generate qr code
+        #generate qr code and save localy
         sec_key_generated = pyotp.totp.TOTP(secret).provisioning_uri(form.email.data, issuer_name=form.username.data)
         qr = qrcode.QRCode(
         version=1,
@@ -132,9 +132,11 @@ def adduser():
         qr.make(fit=True)
         image = qr.make_image(fill_color="black", back_color="white")
         image.save("qrcode.png")
+        print("QRcode saved")
 
         return (url_for('login'))
-        
+    else:
+        print("User exists or data not correct")
     return render_template('adduser.html', form=form)
 
 
