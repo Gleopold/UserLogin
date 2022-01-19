@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, redirect, request
+from flask import Flask, render_template, url_for, redirect, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
@@ -9,7 +9,8 @@ import pyotp
 import subprocess, sys
 import qrcode
 from PIL import Image  
-import PIL  
+import PIL
+import time
 
 
 app = Flask(__name__)
@@ -93,8 +94,10 @@ def login():
             if user:
                 if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(user.sec_key).verify(int(otp)):
                     login_user(user)
-                    p = subprocess.Popen(["powershell.exe", 
-                    "C:\\Users\\Leo\\Documents\\GitHub\\UserLogin\\mkdir.ps1"], 
+                    path = "C:\\Users\\Leo\\Documents\\GitHub\\UserLogin\\mkdir.ps1"
+                    pathanduser = path + " " + form.username.data
+                    print(pathanduser)
+                    p = subprocess.Popen(["powershell.exe", pathanduser],
                     stdout=sys.stdout)
                     p.communicate()
                     return render_template('dashboard.html', username=form.username.data)

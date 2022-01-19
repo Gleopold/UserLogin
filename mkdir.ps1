@@ -1,2 +1,2 @@
-New-Item -Path 'C:\Users\Leo\Documents\GitHub\UserLogin\Test' -ItemType Directory
-Write-Output "File created";
+$param1=$args[0]
+Write-Host $param1 
