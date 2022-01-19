@@ -91,9 +91,9 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         try:
             if user:
-                if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(user.sec_key).verify(int(otp)):
+                if bcrypt.check_password_hash(user.password, form.password.data): # and pyotp.TOTP(user.sec_key).verify(int(otp)):
                     login_user(user)
-                    return render_template('dashboard.html', username=form.username.data)
+                    return redirect_to('dashboard.html', username=form.username.data)
         except:
             print("OTP exception")
     else:
@@ -132,7 +132,7 @@ def adduser():
 
 
 @app.route('/dashboard', methods=['GET', 'POST'])
-@login_required
+#@login_required
 def dashboard():
     p = subprocess.Popen(["powershell.exe", 
     "C:\\Users\\Leo\\Documents\\GitHub\\UserLogin\\mkdir.ps1"], 
