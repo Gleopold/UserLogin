@@ -15,7 +15,7 @@ import PIL
 app = Flask(__name__)
 db = SQLAlchemy(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = 'thisisasecretkey'
+app.config['SECRET_KEY'] = 'SEC_KEY'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -38,7 +38,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(20), nullable=False, unique=True)
+    email = db.Column(db.String(40), nullable=False, unique=True)
     sec_key = db.Column(db.String(20), nullable=False, unique=True)
 
 
@@ -62,7 +62,7 @@ class AddUserForm(FlaskForm):
         min = 1, max=80)], render_kw={"placeholder":"Password"})
 
     email = StringField(validators=[InputRequired(), Length(
-        min = 1, max=20)], render_kw={"placeholder":"email"})
+        min = 1, max=40)], render_kw={"placeholder":"email"})
 
     submit = SubmitField("AddUser")
     
@@ -82,8 +82,6 @@ def home():
 def login():
 
     form = LoginForm()
-    
-    #return render_template("login.html", secret=secret, form = form)
     print('Form initialized')
 
     otp = request.values.get("otp")
@@ -91,11 +89,13 @@ def login():
 
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(user.sec_key).verify(otp):
-                login_user(user)
-                return redirect(url_for('dashboard'))
+        try:
+            if user:
+                if bcrypt.check_password_hash(user.password, form.password.data) and pyotp.TOTP(user.sec_key).verify(int(otp)):
+                    login_user(user)
+                    return render_template('dashboard.html', username=form.username.data)
+        except:
+            print("OTP exception")
     else:
         print('Not validated')
     return render_template('login.html', form=form)

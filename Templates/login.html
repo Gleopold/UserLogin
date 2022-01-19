@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Title of the document</title>
+    <title>CDE Unlock</title>
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/style.css') }}">
 </head>
 
-<body class="loginid">
+<body>
     <div class="session">
         <div class="left">
-            <h1>Login auth</h1>
+            <h4>CDE Unlock</h4>
             
-            <form method="POST" action="" class="log-in" >
+            <form method="POST" action="" class="log-in">
+                <div class="floating-label">
                 {{ form.hidden_tag() }}
                 {{ form.username }}
                 {{ form.password() }}
                 {{ form.otp }}
                 {{ form.submit() }}
+                </div>
             </form>
         </div>
     </div>

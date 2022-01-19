@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Title of the document</title>
+    <title>Add User</title>
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/style.css') }}">
 </head>
 
 <body>
 
-    <h1>Add user</h1>
+    <h4>Add user</h4>
     <form method="POST" action="">
         {{ form.hidden_tag() }}
         {{ form.username }}
