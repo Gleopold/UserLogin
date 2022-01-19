@@ -8,5 +8,8 @@ body {
   }
 
 .loginid{
-    padding: 20px;
+    padding: 40px;
+	height: 200px;
+	width: 200px;
+	background: blue;
 }
