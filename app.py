@@ -8,7 +8,7 @@ from flask_bcrypt import Bcrypt
 import pyotp
 import subprocess, sys
 import qrcode
-from PIL import Image  
+from PIL import Image
 import PIL
 import time
 
