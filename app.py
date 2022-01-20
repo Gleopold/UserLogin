@@ -121,8 +121,9 @@ def login():
 def adduser():
     form = AddUserForm()
     secret = pyotp.random_base32()
+    print("Current user id:", current_user.id)
 
-    if form.validate_on_submit():
+    if form.validate_on_submit() and int(current_user.id)==int("1"):
         hashed_password = bcrypt.generate_password_hash(form.password.data)
         new_user = User(username=form.username.data,
                         password=hashed_password, email=form.email.data, sec_key=secret)
@@ -146,7 +147,7 @@ def adduser():
 
         return (url_for('login'))
     else:
-        print("User exists or data not correct")
+        print("Not admin, user exists or data not correct")
     return render_template('adduser.html', form=form)
 
 
